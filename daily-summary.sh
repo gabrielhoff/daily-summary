@@ -136,7 +136,7 @@ get_meetings() {
       title=$(summarize_meeting_title "$title")
     fi
     
-    output+="• $title"$'\n'
+    output+="• 📅 $title"$'\n'
   done <<< "$raw_meetings"
   
   echo "$output"
