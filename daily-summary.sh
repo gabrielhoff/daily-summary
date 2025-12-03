@@ -207,13 +207,13 @@ if [ -n "$CREATED_PRS" ]; then
     else
       status="🔴"
     fi
-    echo "• $status <$url|$title>"
+    echo "• $status $title ($url)"
   done <<< "$CREATED_PRS"
 fi
 
 if [ -n "$MERGED_PRS" ]; then
   while IFS='|' read -r number title state url; do
-    echo "• ✅ <$url|$title>"
+    echo "• ✅ $title ($url)"
   done <<< "$MERGED_PRS"
 fi
 
@@ -278,7 +278,7 @@ if [ -n "$OTHER_OPEN_PRS" ]; then
   echo "*Other PRs in progress:*"
   echo ""
   while IFS='|' read -r number title url; do
-    echo "• 🟡 <$url|$title>"
+    echo "• 🟡 $title ($url)"
   done <<< "$OTHER_OPEN_PRS"
 fi
 
