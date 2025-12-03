@@ -170,6 +170,33 @@ MERGED_PRS=$(gh pr list --repo "$GITHUB_REPO" --author "@me" --state merged --li
   | "\(.number)|\(.title)|\(.state)|\(.url)"
 ')
 
+# Check if current branch was created before today (for "Worked on" in yesterday)
+SESO_APP_DIR="$HOME/projects/seso-app"
+BRANCH_CREATED_BEFORE_TODAY=false
+CURRENT_BRANCH=""
+FEATURE_NAME=""
+
+if [ -d "$SESO_APP_DIR/.git" ]; then
+  CURRENT_BRANCH=$(git -C "$SESO_APP_DIR" branch --show-current)
+  
+  if [ "$CURRENT_BRANCH" != "master" ] && [ "$CURRENT_BRANCH" != "main" ] && [ -n "$CURRENT_BRANCH" ]; then
+    # Get the date of the first commit on this branch (branch creation)
+    BRANCH_FIRST_COMMIT_DATE=$(git -C "$SESO_APP_DIR" log origin/master.."$CURRENT_BRANCH" --reverse --format="%cs" 2>/dev/null | head -1)
+    
+    if [ -n "$BRANCH_FIRST_COMMIT_DATE" ] && [ "$BRANCH_FIRST_COMMIT_DATE" \< "$TODAY" ]; then
+      BRANCH_CREATED_BEFORE_TODAY=true
+    fi
+    
+    # Extract feature name from branch - humanize it
+    FEATURE_NAME=$(echo "$CURRENT_BRANCH" | \
+      sed 's|feature/||g' | \
+      sed 's|fix/||g' | \
+      sed 's|SESO-[0-9]*[-_]*||g' | \
+      sed 's/[-_]/ /g' | \
+      awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
+  fi
+fi
+
 # Output PRs
 if [ -n "$CREATED_PRS" ]; then
   while IFS='|' read -r number title state url; do
@@ -190,6 +217,11 @@ if [ -n "$MERGED_PRS" ]; then
   done <<< "$MERGED_PRS"
 fi
 
+# Show "Worked on" if branch was created before today
+if [ "$BRANCH_CREATED_BEFORE_TODAY" = true ] && [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ]; then
+  echo "• 🔧 Worked on $FEATURE_NAME"
+fi
+
 # Yesterday's meetings
 if command -v gcalcli &> /dev/null; then
   YESTERDAY_MEETINGS=$(get_meetings "$TARGET_DATE" "$NEXT_DATE" "true" "false")
@@ -198,7 +230,7 @@ if command -v gcalcli &> /dev/null; then
   fi
 fi
 
-if [ -z "$CREATED_PRS" ] && [ -z "$MERGED_PRS" ] && [ -z "$YESTERDAY_MEETINGS" ]; then
+if [ -z "$CREATED_PRS" ] && [ -z "$MERGED_PRS" ] && [ -z "$YESTERDAY_MEETINGS" ] && [ "$BRANCH_CREATED_BEFORE_TODAY" = false ]; then
   echo "_No activity_"
 fi
 
@@ -214,23 +246,12 @@ else
 fi
 echo ""
 
-# Current work in progress (always check seso-app repo)
-SESO_APP_DIR="$HOME/projects/seso-app"
-if [ -d "$SESO_APP_DIR/.git" ]; then
-  CURRENT_BRANCH=$(git -C "$SESO_APP_DIR" branch --show-current)
-  
-  if [ "$CURRENT_BRANCH" != "master" ] && [ "$CURRENT_BRANCH" != "main" ] && [ -n "$CURRENT_BRANCH" ]; then
-    # Extract feature name from branch - humanize it
-    FEATURE_NAME=$(echo "$CURRENT_BRANCH" | \
-      sed 's|feature/||g' | \
-      sed 's|fix/||g' | \
-      sed 's|SESO-[0-9]*[-_]*||g' | \
-      sed 's/[-_]/ /g' | \
-      awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
-    
-    if [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ]; then
-      echo "• 🔧 Working on $FEATURE_NAME"
-    fi
+# Current work in progress (use variables already set above)
+if [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ]; then
+  if [ "$BRANCH_CREATED_BEFORE_TODAY" = true ]; then
+    echo "• 🔧 Keep working on $FEATURE_NAME"
+  else
+    echo "• 🔧 Working on $FEATURE_NAME"
   fi
 fi
 
