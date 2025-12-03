@@ -64,23 +64,6 @@ daily-summary
 daily-summary 2025-12-01
 ```
 
-## Example Output
-
-```
-*Yesterday:*
-
-• 🟡 [SESO-20462] Fieldclock timesheet custom import
-• ✅ [SESO-20449] Growers/Workplaces UI Improvements
-• Employee Navigator Weekly Sync
-• Green team retro
-
-*Today:*
-
-• 🔧 Working on Cost Allocation Group Bulk Import
-• Payroll weekly meeting: Atlas and Seso
-• Case Study Presentation: Deena, Jess & Gabriel
-```
-
 ## Configuration
 
 Edit the script to customize:
