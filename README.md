@@ -1,6 +1,7 @@
 # Daily Summary
 
 A CLI tool that generates a Slack-ready daily work summary including:
+
 - **Yesterday**: PRs created/merged + meetings attended
 - **Today**: Current work in progress + upcoming meetings
 
@@ -15,15 +16,18 @@ A CLI tool that generates a Slack-ready daily work summary including:
 ## Prerequisites
 
 1. **GitHub CLI** (`gh`) - for PR information
+
    ```bash
    brew install gh
    gh auth login
    ```
 
 2. **gcalcli** - for Google Calendar integration
+
    ```bash
    pip3 install gcalcli
    ```
+
    Then authenticate: `gcalcli list` (opens browser for OAuth)
 
 3. **Anthropic API Key** (optional, for AI meeting summaries)
@@ -89,4 +93,3 @@ EXCLUDE_PATTERNS="ask before booking|out of office|ooo|focus time|lunch|blocked|
 ## License
 
 MIT
-

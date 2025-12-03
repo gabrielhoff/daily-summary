@@ -155,14 +155,17 @@ else
 fi
 echo ""
 
+# GitHub repo for PR information (change this to your repo)
+GITHUB_REPO="sesolabor/seso-app"
+
 # Get PRs created on the target date
-CREATED_PRS=$(gh pr list --author "@me" --state all --limit 50 --json number,title,state,url,createdAt,mergedAt | jq -r --arg date "$TARGET_DATE" --arg next "$NEXT_DATE" '
+CREATED_PRS=$(gh pr list --repo "$GITHUB_REPO" --author "@me" --state all --limit 50 --json number,title,state,url,createdAt,mergedAt | jq -r --arg date "$TARGET_DATE" --arg next "$NEXT_DATE" '
   .[] | select(.createdAt >= ($date + "T00:00:00Z") and .createdAt < ($next + "T00:00:00Z"))
   | "\(.number)|\(.title)|\(.state)|\(.url)"
 ')
 
 # Get PRs merged on the target date (but created earlier)
-MERGED_PRS=$(gh pr list --author "@me" --state merged --limit 50 --json number,title,state,url,createdAt,mergedAt | jq -r --arg date "$TARGET_DATE" --arg next "$NEXT_DATE" '
+MERGED_PRS=$(gh pr list --repo "$GITHUB_REPO" --author "@me" --state merged --limit 50 --json number,title,state,url,createdAt,mergedAt | jq -r --arg date "$TARGET_DATE" --arg next "$NEXT_DATE" '
   .[] | select(.mergedAt != null and .mergedAt >= ($date + "T00:00:00Z") and .mergedAt < ($next + "T00:00:00Z") and .createdAt < ($date + "T00:00:00Z"))
   | "\(.number)|\(.title)|\(.state)|\(.url)"
 ')
