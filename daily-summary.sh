@@ -214,11 +214,12 @@ else
 fi
 echo ""
 
-# Current work in progress
-if git rev-parse --is-inside-work-tree &>/dev/null; then
-  CURRENT_BRANCH=$(git branch --show-current)
+# Current work in progress (always check seso-app repo)
+SESO_APP_DIR="$HOME/projects/seso-app"
+if [ -d "$SESO_APP_DIR/.git" ]; then
+  CURRENT_BRANCH=$(git -C "$SESO_APP_DIR" branch --show-current)
   
-  if [ "$CURRENT_BRANCH" != "master" ] && [ "$CURRENT_BRANCH" != "main" ]; then
+  if [ "$CURRENT_BRANCH" != "master" ] && [ "$CURRENT_BRANCH" != "main" ] && [ -n "$CURRENT_BRANCH" ]; then
     # Extract feature name from branch - humanize it
     FEATURE_NAME=$(echo "$CURRENT_BRANCH" | \
       sed 's|feature/||g' | \
