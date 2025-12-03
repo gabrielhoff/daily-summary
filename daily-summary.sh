@@ -263,4 +263,23 @@ if command -v gcalcli &> /dev/null; then
   fi
 fi
 
+# =====================
+# OTHER OPEN PRs SECTION
+# =====================
+
+# Get all open PRs not created yesterday
+OTHER_OPEN_PRS=$(gh pr list --repo "$GITHUB_REPO" --author "@me" --state open --limit 50 --json number,title,state,url,createdAt | jq -r --arg date "$TARGET_DATE" --arg next "$NEXT_DATE" '
+  .[] | select(.createdAt < ($date + "T00:00:00Z") or .createdAt >= ($next + "T00:00:00Z"))
+  | "\(.number)|\(.title)|\(.url)"
+')
+
+if [ -n "$OTHER_OPEN_PRS" ]; then
+  echo ""
+  echo "*Other PRs in progress:*"
+  echo ""
+  while IFS='|' read -r number title url; do
+    echo "• 🟡 <$url|$title>"
+  done <<< "$OTHER_OPEN_PRS"
+fi
+
 echo ""
