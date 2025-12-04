@@ -18,6 +18,46 @@ ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 # Patterns to exclude from calendar (case-insensitive)
 EXCLUDE_PATTERNS="ask before booking|out of office|ooo|focus time|lunch|blocked|do not book|busy|on call -|stand up|standup|stand-up"
 
+# Emoji pairs representing past → future / young → old
+# Format: "yesterday_emoji|today_emoji"
+EMOJI_PAIRS=(
+  "👶|👴"    # baby → old man
+  "👶|👵"    # baby → old woman
+  "🌱|🌳"    # seedling → tree
+  "🐾|🦁"    # paw print → lion (cub to king)
+  "🥚|🐔"    # egg → chicken
+  "🐛|🦋"    # caterpillar → butterfly
+  "🐣|🐓"    # hatching chick → rooster
+  "🌸|🍎"    # blossom → apple
+  "🍇|🍷"    # grapes → wine
+  "🥛|🧀"    # milk → cheese
+  "🌑|🌕"    # new moon → full moon
+  "🌽|🍿"    # corn → popcorn
+  "⏳|⌛"    # hourglass flowing → done
+  "🪨|💎"    # rock → diamond
+  "🪺|🦅"    # nest with eggs → eagle
+  "🌧️|🌈"    # rain → rainbow
+  "🫘|☕"    # coffee beans → coffee
+  "🧱|🏰"    # brick → castle
+  "🪵|🪑"    # log → chair
+  "🐴|🦄"    # horse → unicorn (magical evolution)
+  "📒|📚"    # notebook → books
+  "🦎|🐉"    # lizard → dragon
+  "🐺|🐕"    # wolf → dog (domestication)
+  "🌾|🍞"    # wheat → bread
+  "🫛|🥗"    # pea pod → salad
+  "🪹|🐦"    # empty nest → bird
+  "🧬|🧠"    # dna → brain (evolution)
+  "🔩|🤖"    # screw → robot
+  "🎒|🎓"    # backpack → graduation cap
+)
+
+# Randomly select an emoji pair
+RANDOM_INDEX=$((RANDOM % ${#EMOJI_PAIRS[@]}))
+SELECTED_PAIR="${EMOJI_PAIRS[$RANDOM_INDEX]}"
+YESTERDAY_EMOJI="${SELECTED_PAIR%%|*}"
+TODAY_EMOJI="${SELECTED_PAIR##*|}"
+
 # Default to yesterday if no date provided
 if [ -z "$1" ]; then
   if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -149,9 +189,9 @@ echo ""
 # =====================
 
 if [ -z "$1" ]; then
-  echo "*Yesterday:*"
+  echo "*Yesterday:* $YESTERDAY_EMOJI"
 else
-  echo "*$DISPLAY_DATE:*"
+  echo "*$DISPLAY_DATE:* $YESTERDAY_EMOJI"
 fi
 echo ""
 
@@ -173,6 +213,7 @@ MERGED_PRS=$(gh pr list --repo "$GITHUB_REPO" --author "@me" --state merged --li
 # Check if current branch was created before today (for "Worked on" in yesterday)
 SESO_APP_DIR="$HOME/projects/seso-app"
 BRANCH_CREATED_BEFORE_TODAY=false
+BRANCH_HAS_OPEN_PR=false
 CURRENT_BRANCH=""
 FEATURE_NAME=""
 
@@ -180,6 +221,12 @@ if [ -d "$SESO_APP_DIR/.git" ]; then
   CURRENT_BRANCH=$(git -C "$SESO_APP_DIR" branch --show-current)
   
   if [ "$CURRENT_BRANCH" != "master" ] && [ "$CURRENT_BRANCH" != "main" ] && [ -n "$CURRENT_BRANCH" ]; then
+    # Check if this branch already has an open PR (to avoid repetition)
+    PR_STATE=$(gh pr view "$CURRENT_BRANCH" --repo "$GITHUB_REPO" --json state --jq '.state' 2>/dev/null)
+    if [ "$PR_STATE" = "OPEN" ]; then
+      BRANCH_HAS_OPEN_PR=true
+    fi
+    
     # Get the date of the first commit on this branch (branch creation)
     BRANCH_FIRST_COMMIT_DATE=$(git -C "$SESO_APP_DIR" log origin/master.."$CURRENT_BRANCH" --reverse --format="%cs" 2>/dev/null | head -1)
     
@@ -217,8 +264,8 @@ if [ -n "$MERGED_PRS" ]; then
   done <<< "$MERGED_PRS"
 fi
 
-# Show "Worked on" if branch was created before today
-if [ "$BRANCH_CREATED_BEFORE_TODAY" = true ] && [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ]; then
+# Show "Worked on" if branch was created before today (skip if PR already open - it'll appear in "Other PRs")
+if [ "$BRANCH_CREATED_BEFORE_TODAY" = true ] && [ "$BRANCH_HAS_OPEN_PR" = false ] && [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ]; then
   echo "• 🔧 Worked on $FEATURE_NAME"
 fi
 
@@ -230,7 +277,8 @@ if command -v gcalcli &> /dev/null; then
   fi
 fi
 
-if [ -z "$CREATED_PRS" ] && [ -z "$MERGED_PRS" ] && [ -z "$YESTERDAY_MEETINGS" ] && [ "$BRANCH_CREATED_BEFORE_TODAY" = false ]; then
+SHOWED_WORKED_ON=$( [ "$BRANCH_CREATED_BEFORE_TODAY" = true ] && [ "$BRANCH_HAS_OPEN_PR" = false ] && [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ] && echo true || echo false )
+if [ -z "$CREATED_PRS" ] && [ -z "$MERGED_PRS" ] && [ -z "$YESTERDAY_MEETINGS" ] && [ "$SHOWED_WORKED_ON" = false ]; then
   echo "_No activity_"
 fi
 
@@ -240,14 +288,14 @@ fi
 
 echo ""
 if [ -z "$1" ]; then
-  echo "*Today:*"
+  echo "*Today:* $TODAY_EMOJI"
 else
-  echo "*Today ($TODAY_DISPLAY):*"
+  echo "*Today ($TODAY_DISPLAY):* $TODAY_EMOJI"
 fi
 echo ""
 
-# Current work in progress (use variables already set above)
-if [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ]; then
+# Current work in progress (skip if PR already open - it'll appear in "Other PRs")
+if [ "$BRANCH_HAS_OPEN_PR" = false ] && [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ]; then
   if [ "$BRANCH_CREATED_BEFORE_TODAY" = true ]; then
     echo "• 🔧 Keep working on $FEATURE_NAME"
   else
