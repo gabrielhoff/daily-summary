@@ -189,9 +189,9 @@ echo ""
 # =====================
 
 if [ -z "$1" ]; then
-  echo "*Yesterday:* $YESTERDAY_EMOJI"
+  echo "$YESTERDAY_EMOJI Yesterday:"
 else
-  echo "*$DISPLAY_DATE:* $YESTERDAY_EMOJI"
+  echo "$YESTERDAY_EMOJI $DISPLAY_DATE:"
 fi
 echo ""
 
@@ -288,9 +288,9 @@ fi
 
 echo ""
 if [ -z "$1" ]; then
-  echo "*Today:* $TODAY_EMOJI"
+  echo "$TODAY_EMOJI Today:"
 else
-  echo "*Today ($TODAY_DISPLAY):* $TODAY_EMOJI"
+  echo "$TODAY_EMOJI Today ($TODAY_DISPLAY):"
 fi
 echo ""
 
@@ -323,7 +323,7 @@ OTHER_OPEN_PRS=$(gh pr list --repo "$GITHUB_REPO" --author "@me" --state open --
 
 if [ -n "$OTHER_OPEN_PRS" ]; then
   echo ""
-  echo "*Other PRs in progress:*"
+  echo "🔄 Other PRs in progress:"
   echo ""
   while IFS='|' read -r number title url; do
     echo "• 🟡 $title ($url)"
