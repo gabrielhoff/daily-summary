@@ -210,6 +210,38 @@ MERGED_PRS=$(gh pr list --repo "$GITHUB_REPO" --author "@me" --state merged --li
   | "\(.number)|\(.title)|\(.state)|\(.url)"
 ')
 
+# Get PRs reviewed on the target date (using GitHub GraphQL API)
+REVIEWED_PRS=$(gh api graphql -f query='
+query($from: DateTime!, $to: DateTime!) {
+  viewer {
+    contributionsCollection(from: $from, to: $to) {
+      pullRequestReviewContributions(first: 50) {
+        nodes {
+          pullRequest {
+            number
+            title
+            url
+            author {
+              login
+            }
+            repository {
+              nameWithOwner
+            }
+          }
+          pullRequestReview {
+            state
+          }
+        }
+      }
+    }
+  }
+}' -f from="${TARGET_DATE}T00:00:00Z" -f to="${NEXT_DATE}T00:00:00Z" 2>/dev/null | jq -r --arg repo "$GITHUB_REPO" '
+  .data.viewer.contributionsCollection.pullRequestReviewContributions.nodes[]
+  | select(.pullRequest.repository.nameWithOwner == $repo)
+  | select(.pullRequest.author.login != null)
+  | "\(.pullRequest.number)|\(.pullRequest.title)|\(.pullRequest.url)|\(.pullRequest.author.login)|\(.pullRequestReview.state)"
+' | sort -u)
+
 # Check if current branch was created before today (for "Worked on" in yesterday)
 SESO_APP_DIR="$HOME/projects/seso-app"
 BRANCH_CREATED_BEFORE_TODAY=false
@@ -264,6 +296,21 @@ if [ -n "$MERGED_PRS" ]; then
   done <<< "$MERGED_PRS"
 fi
 
+# Output reviewed PRs
+if [ -n "$REVIEWED_PRS" ]; then
+  while IFS='|' read -r number title url author state; do
+    # Show different emoji based on review state
+    if [ "$state" = "APPROVED" ]; then
+      review_emoji="👍"
+    elif [ "$state" = "CHANGES_REQUESTED" ]; then
+      review_emoji="✏️"
+    else
+      review_emoji="👀"
+    fi
+    echo "• $review_emoji Reviewed: $title by @$author ($url)"
+  done <<< "$REVIEWED_PRS"
+fi
+
 # Show "Worked on" if branch was created before today (skip if PR already open - it'll appear in "Other PRs")
 if [ "$BRANCH_CREATED_BEFORE_TODAY" = true ] && [ "$BRANCH_HAS_OPEN_PR" = false ] && [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ]; then
   echo "• 🔧 Worked on $FEATURE_NAME"
@@ -278,7 +325,7 @@ if command -v gcalcli &> /dev/null; then
 fi
 
 SHOWED_WORKED_ON=$( [ "$BRANCH_CREATED_BEFORE_TODAY" = true ] && [ "$BRANCH_HAS_OPEN_PR" = false ] && [ -n "$FEATURE_NAME" ] && [ "$FEATURE_NAME" != " " ] && echo true || echo false )
-if [ -z "$CREATED_PRS" ] && [ -z "$MERGED_PRS" ] && [ -z "$YESTERDAY_MEETINGS" ] && [ "$SHOWED_WORKED_ON" = false ]; then
+if [ -z "$CREATED_PRS" ] && [ -z "$MERGED_PRS" ] && [ -z "$REVIEWED_PRS" ] && [ -z "$YESTERDAY_MEETINGS" ] && [ "$SHOWED_WORKED_ON" = false ]; then
   echo "_No activity_"
 fi
 
