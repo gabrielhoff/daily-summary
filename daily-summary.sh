@@ -58,12 +58,23 @@ SELECTED_PAIR="${EMOJI_PAIRS[$RANDOM_INDEX]}"
 YESTERDAY_EMOJI="${SELECTED_PAIR%%|*}"
 TODAY_EMOJI="${SELECTED_PAIR##*|}"
 
-# Default to yesterday if no date provided
+# Default to yesterday if no date provided (Friday if today is Monday)
 if [ -z "$1" ]; then
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    TARGET_DATE=$(date -v-1d +%Y-%m-%d)
+    DAY_OF_WEEK=$(date +%u)  # 1=Monday, 7=Sunday
+    if [ "$DAY_OF_WEEK" = "1" ]; then
+      # Monday: go back to Friday (3 days ago)
+      TARGET_DATE=$(date -v-3d +%Y-%m-%d)
+    else
+      TARGET_DATE=$(date -v-1d +%Y-%m-%d)
+    fi
   else
-    TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
+    DAY_OF_WEEK=$(date +%u)
+    if [ "$DAY_OF_WEEK" = "1" ]; then
+      TARGET_DATE=$(date -d "3 days ago" +%Y-%m-%d)
+    else
+      TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
+    fi
   fi
 else
   TARGET_DATE="$1"
@@ -189,7 +200,11 @@ echo ""
 # =====================
 
 if [ -z "$1" ]; then
-  echo "$YESTERDAY_EMOJI Yesterday:"
+  if [ "$DAY_OF_WEEK" = "1" ]; then
+    echo "$YESTERDAY_EMOJI Friday:"
+  else
+    echo "$YESTERDAY_EMOJI Yesterday:"
+  fi
 else
   echo "$YESTERDAY_EMOJI $DISPLAY_DATE:"
 fi
